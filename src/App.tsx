@@ -23,6 +23,7 @@ import { NoticeGeneratorModal } from './components/NoticeGeneratorModal';
 import { ArtworkRemediationModal } from './components/ArtworkRemediationModal';
 import { WeightToleranceModal } from './components/WeightToleranceModal';
 import { BackendConnectionModal } from './components/BackendConnectionModal';
+import { LoginView } from './components/LoginView';
 import { InspectionResult, UserRole } from './types/compliance';
 import {
   getSavedInspections,
@@ -48,11 +49,12 @@ import {
   BarChart3,
   BookOpen,
   Server,
+  LogOut,
+  User
 } from 'lucide-react';
 
-export default function App() {
-  const [activePage, setActivePage] = useState<AppPage>('scan');
-  const [userRole, setUserRole] = useState<UserRole>('INSPECTOR');
+function InspectorApp({ userEmail, role, onLogout }: { userEmail: string; role: UserRole; onLogout: () => void }) {
+  const [activePage, setActivePage] = useState<AppPage>(role === 'CONTROLLER' ? 'dashboard' : 'scan');
   const [currentReport, setCurrentReport] = useState<InspectionResult | null>(null);
   const [inspections, setInspections] = useState<InspectionResult[]>([]);
   const [isScanning, setIsScanning] = useState(false);
@@ -160,8 +162,8 @@ export default function App() {
             setActivePage(page);
             setIsMobileMenuOpen(false);
           }}
-          userRole={userRole}
-          onChangeRole={setUserRole}
+          userRole={role}
+          onChangeRole={() => {}} // Disabled
           hasCurrentReport={!!currentReport}
           unresolvedViolationsCount={unresolvedViolations}
           isCollapsed={isSidebarCollapsed}
@@ -208,6 +210,22 @@ export default function App() {
                 {getStoredBackendUrl() ? 'Server: Custom' : isNativeApkRuntime() ? 'Server (APK)' : 'Server'}
               </span>
             </button>
+            <div className="flex items-center gap-2 pl-3 ml-2 border-l border-slate-200">
+              <div className="hidden md:flex flex-col items-end">
+                <span className="text-xs font-bold text-slate-900 leading-none">{userEmail}</span>
+                <span className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wider">
+                  {role === 'INSPECTOR' ? 'INSPECTOR' : role === 'CONTROLLER' ? 'SUPERVISOR' : 'AUDITOR'}
+                </span>
+              </div>
+              <button
+                onClick={onLogout}
+                className="p-1.5 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer flex items-center gap-1"
+                title="Log out"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="text-xs font-bold sm:hidden">Logout</span>
+              </button>
+            </div>
           </div>
         </header>
 
@@ -257,7 +275,7 @@ export default function App() {
             currentReport ? (
               <ComplianceReportView
                 report={currentReport}
-                userRole={userRole}
+                userRole={role}
                 onBackToScanner={() => setActivePage('scan')}
                 onOpenNoticeGenerator={() => setIsNoticeModalOpen(true)}
                 onOpenStudio={() => setActivePage('studio')}
@@ -363,83 +381,85 @@ export default function App() {
         </main>
 
         {/* Mobile Bottom Navigation Bar (Thumb-friendly field inspector layout) */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 flex items-center justify-around select-none shadow-lg print:hidden">
-          {/* Visual Studio */}
-          <button
-            onClick={() => {
-              if (currentReport) setActivePage('studio');
-              else setActivePage('scan');
-            }}
-            className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl min-w-[54px] min-h-[44px] transition-colors cursor-pointer ${
-              activePage === 'studio' ? 'text-emerald-700 font-bold' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <div className={`p-1 rounded-lg ${activePage === 'studio' ? 'bg-emerald-100 text-emerald-700' : ''}`}>
-              <Layers className="w-5 h-5" />
-            </div>
-            <span className="text-[10px] mt-0.5">Studio</span>
-          </button>
+        {role !== 'CONTROLLER' && (
+          <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 flex items-center justify-around select-none shadow-lg print:hidden">
+            {/* Scan */}
+            <button
+              onClick={() => setActivePage('scan')}
+              className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl min-w-[54px] min-h-[44px] transition-colors cursor-pointer ${
+                activePage === 'scan' ? 'text-emerald-700 font-bold' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <div className={`p-1 rounded-lg ${activePage === 'scan' ? 'bg-emerald-100 text-emerald-700' : ''}`}>
+                <Camera className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] mt-0.5">Scan</span>
+            </button>
 
-          {/* Report */}
-          <button
-            onClick={() => {
-              if (currentReport) setActivePage('report');
-              else setActivePage('scan');
-            }}
-            className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl min-w-[54px] min-h-[44px] relative transition-colors cursor-pointer ${
-              activePage === 'report' ? 'text-emerald-700 font-bold' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <div className={`p-1 rounded-lg ${activePage === 'report' ? 'bg-emerald-100 text-emerald-700' : ''}`}>
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <span className="text-[10px] mt-0.5">Report</span>
-            {currentReport && unresolvedViolations > 0 && (
-              <span className="absolute top-1.5 right-3 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white"></span>
-            )}
-          </button>
+            {/* Report */}
+            <button
+              onClick={() => {
+                if (currentReport) setActivePage('report');
+                else setActivePage('scan');
+              }}
+              className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl min-w-[54px] min-h-[44px] relative transition-colors cursor-pointer ${
+                activePage === 'report' ? 'text-emerald-700 font-bold' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <div className={`p-1 rounded-lg ${activePage === 'report' ? 'bg-emerald-100 text-emerald-700' : ''}`}>
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] mt-0.5">Report</span>
+              {currentReport && unresolvedViolations > 0 && (
+                <span className="absolute top-1.5 right-3 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white"></span>
+              )}
+            </button>
 
-          {/* Scan */}
-          <button
-            onClick={() => setActivePage('scan')}
-            className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl min-w-[54px] min-h-[44px] transition-colors cursor-pointer ${
-              activePage === 'scan' ? 'text-emerald-700 font-bold' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <div className={`p-1 rounded-lg ${activePage === 'scan' ? 'bg-emerald-100 text-emerald-700' : ''}`}>
-              <Camera className="w-5 h-5" />
-            </div>
-            <span className="text-[10px] mt-0.5">Scan</span>
-          </button>
+            {/* Visual Studio */}
+            <button
+              onClick={() => {
+                if (currentReport) setActivePage('studio');
+                else setActivePage('scan');
+              }}
+              className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl min-w-[54px] min-h-[44px] transition-colors cursor-pointer ${
+                activePage === 'studio' ? 'text-emerald-700 font-bold' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <div className={`p-1 rounded-lg ${activePage === 'studio' ? 'bg-emerald-100 text-emerald-700' : ''}`}>
+                <Layers className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] mt-0.5">Studio</span>
+            </button>
 
-          {/* History */}
-          <button
-            onClick={() => setActivePage('cases')}
-            className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl min-w-[54px] min-h-[44px] transition-colors cursor-pointer ${
-              activePage === 'cases' ? 'text-emerald-700 font-bold' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <div className={`p-1 rounded-lg ${activePage === 'cases' ? 'bg-emerald-100 text-emerald-700' : ''}`}>
-              <FolderArchive className="w-5 h-5" />
-            </div>
-            <span className="text-[10px] mt-0.5">History</span>
-          </button>
+            {/* History */}
+            <button
+              onClick={() => setActivePage('cases')}
+              className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl min-w-[54px] min-h-[44px] transition-colors cursor-pointer ${
+                activePage === 'cases' ? 'text-emerald-700 font-bold' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <div className={`p-1 rounded-lg ${activePage === 'cases' ? 'bg-emerald-100 text-emerald-700' : ''}`}>
+                <FolderArchive className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] mt-0.5">History</span>
+            </button>
 
-          {/* Tools */}
-          <button
-            onClick={() => setActivePage('tools')}
-            className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl min-w-[54px] min-h-[44px] transition-colors cursor-pointer ${
-              activePage === 'tools' || activePage.startsWith('tool-')
-                ? 'text-emerald-700 font-bold'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <div className={`p-1 rounded-lg ${activePage === 'tools' || activePage.startsWith('tool-') ? 'bg-emerald-100 text-emerald-700' : ''}`}>
-              <Calculator className="w-5 h-5" />
-            </div>
-            <span className="text-[10px] mt-0.5">Tools</span>
-          </button>
-        </nav>
+            {/* Tools */}
+            <button
+              onClick={() => setActivePage('tools')}
+              className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl min-w-[54px] min-h-[44px] transition-colors cursor-pointer ${
+                activePage === 'tools' || activePage.startsWith('tool-')
+                  ? 'text-emerald-700 font-bold'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <div className={`p-1 rounded-lg ${activePage === 'tools' || activePage.startsWith('tool-') ? 'bg-emerald-100 text-emerald-700' : ''}`}>
+                <Calculator className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] mt-0.5">Tools</span>
+            </button>
+          </nav>
+        )}
       </div>
 
       {/* Official Form 1 Show-Cause Notice Modal */}
@@ -476,4 +496,67 @@ export default function App() {
       />
     </div>
   );
+}
+
+export const SUPERVISOR_EMAIL = "supervisor@metrotrace.gov.in";
+
+export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
+  const [userRole, setUserRole] = useState<UserRole>('INSPECTOR');
+  const [currentPath, setCurrentPath] = useState(window.location.pathname);
+
+  useEffect(() => {
+    const handleLocationChange = () => {
+      setCurrentPath(window.location.pathname);
+    };
+
+    window.addEventListener('popstate', handleLocationChange);
+    return () => window.removeEventListener('popstate', handleLocationChange);
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      if (currentPath !== '/login') {
+        window.history.replaceState(null, '', '/login');
+        setCurrentPath('/login');
+      }
+    } else {
+      if (currentPath === '/login' || currentPath === '/') {
+        const targetPath = userRole === 'CONTROLLER' ? '/supervisor' : '/inspector';
+        window.history.replaceState(null, '', targetPath);
+        setCurrentPath(targetPath);
+      } else if (currentPath === '/supervisor' && userRole !== 'CONTROLLER') {
+        window.history.replaceState(null, '', '/inspector');
+        setCurrentPath('/inspector');
+      } else if (currentPath === '/inspector' && userRole !== 'INSPECTOR') {
+        window.history.replaceState(null, '', '/supervisor');
+        setCurrentPath('/supervisor');
+      }
+    }
+  }, [isAuthenticated, currentPath, userRole]);
+
+  const handleLogin = (email: string) => {
+    const role = email === SUPERVISOR_EMAIL ? 'CONTROLLER' : 'INSPECTOR';
+    setUserEmail(email);
+    setUserRole(role);
+    setIsAuthenticated(true);
+    
+    const targetPath = role === 'CONTROLLER' ? '/supervisor' : '/inspector';
+    window.history.pushState(null, '', targetPath);
+    setCurrentPath(targetPath);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setUserEmail('');
+    window.history.pushState(null, '', '/login');
+    setCurrentPath('/login');
+  };
+
+  if (!isAuthenticated || currentPath === '/login') {
+    return <LoginView onLogin={handleLogin} />;
+  }
+
+  return <InspectorApp userEmail={userEmail} role={userRole} onLogout={handleLogout} />;
 }

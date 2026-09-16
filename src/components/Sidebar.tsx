@@ -329,15 +329,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </span>
               </div>
             </div>
-            <select
-              value={userRole}
-              onChange={(e) => onChangeRole(e.target.value as UserRole)}
-              className="bg-slate-900 text-[11px] text-white border border-slate-700 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-medium cursor-pointer"
-            >
-              <option value="INSPECTOR">Inspector</option>
-              <option value="CONTROLLER">Supervisor</option>
-              <option value="MANUFACTURER_AUDITOR">Auditor</option>
-            </select>
           </div>
         ) : (
           <div className="flex justify-center" title={`Role: ${userRole}`}>
