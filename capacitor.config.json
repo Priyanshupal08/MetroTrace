@@ -1,0 +1,14 @@
+{
+  "appId": "com.legalmetrology.inspector",
+  "appName": "Legal Metrology Inspector",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}
